@@ -30,6 +30,7 @@ jobs:
         env:
           REB_API_KEY: ${{ secrets.REB_API_KEY }}
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
+          KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
         run: node index.js
 
       - name: Commit and push
