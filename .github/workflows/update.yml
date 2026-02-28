@@ -47,5 +47,6 @@ jobs:
           git add index.html data/coords-cache.json
           git diff --staged --quiet && echo "변경 없음, 커밋 건너뜀" || (
             git commit -m "Update: $(date -u '+%Y-%m-%d')" &&
+            git pull --rebase origin main &&
             git push
           )
