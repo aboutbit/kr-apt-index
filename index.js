@@ -37,7 +37,11 @@ async function main() {
 
   let regionsData;
 
-  if (generateOnly) {
+  const skipFetch = process.env.SKIP_FETCH === '1';
+  if (skipFetch) {
+    console.log('\n  ⏭  SKIP_FETCH=1: 가격지수 수집 건너뜀 (지도 테스트 모드)');
+    regionsData = loadFromCache() || [];
+  } else if (generateOnly) {
     console.log('\n  ⏭  --generate-only: 캐시에서 로드 중...');
     regionsData = loadFromCache();
     if (!regionsData) {
