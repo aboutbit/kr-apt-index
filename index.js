@@ -30,6 +30,11 @@ async function main() {
     console.warn('  ⚠  MOLIT_API_KEY 없음 — 실거래가 조회 기능이 비활성화됩니다.\n');
   }
 
+  const kakaoJsKey = process.env.KAKAO_JS_KEY || '';
+  if (!kakaoJsKey) {
+    console.warn('  ⚠  KAKAO_JS_KEY 없음 — 지도 기능이 비활성화됩니다.\n');
+  }
+
   let regionsData;
 
   if (generateOnly) {
@@ -48,7 +53,7 @@ async function main() {
     return;
   }
 
-  await generateHTML(regionsData, OUTPUT_PATH, molitApiKey);
+  await generateHTML(regionsData, OUTPUT_PATH, molitApiKey, kakaoJsKey);
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('  완료!');
