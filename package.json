@@ -1,0 +1,14 @@
+{
+  "name": "kr-apt-index",
+  "version": "1.0.0",
+  "description": "한국 아파트 가격 지수 대시보드 (한국부동산원 R-ONE API)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "dotenv": "^16.0.0",
+    "xml2js": "^0.6.0"
+  }
+}
