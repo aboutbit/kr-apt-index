@@ -1079,17 +1079,16 @@
 
           var ps = new kakao.maps.services.Places();
           var done = 0;
-          // 1차: sigunguNm + umdNm + aptNm (더 정확), 실패 시 2차: sigunguNm + aptNm
-          function searchApt(apt, query, fallbackQuery, resolve) {
-            ps.keywordSearch(query, function(results, status) {
+          // 쿼리 배열을 순서대로 시도, 찾으면 즉시 종료
+          function searchApt(apt, queries, idx, resolve) {
+            if (idx >= queries.length) return resolve();
+            ps.keywordSearch(queries[idx], function(results, status) {
               if (status === kakao.maps.services.Status.OK && results.length > 0) {
                 apt.lat = parseFloat(results[0].y);
                 apt.lng = parseFloat(results[0].x);
                 resolve();
-              } else if (fallbackQuery) {
-                searchApt(apt, fallbackQuery, null, resolve);
               } else {
-                resolve();
+                searchApt(apt, queries, idx + 1, resolve);
               }
             }, { size: 1 });
           }
@@ -1097,10 +1096,19 @@
           uniqueKeys.forEach(function(key) {
             chain = chain.then(function() {
               var apt = aptKeys[key];
-              var q1 = (sigunguNm ? sigunguNm + ' ' : '') + apt.umdNm + ' ' + apt.aptNm;
-              var q2 = (sigunguNm ? sigunguNm + ' ' : '') + apt.aptNm;
+              var prefix = sigunguNm ? sigunguNm + ' ' : '';
+              // 괄호 제거 변형: 한가람(한양) → 한가람
+              var aptNmClean = apt.aptNm.replace(/([^)]*)/g, '').trim();
+              var queries = [
+                prefix + apt.umdNm + ' ' + apt.aptNm,   // 1차: 동+원본이름
+                prefix + apt.aptNm,                      // 2차: 원본이름만
+              ];
+              if (aptNmClean && aptNmClean !== apt.aptNm) {
+                queries.push(prefix + apt.umdNm + ' ' + aptNmClean); // 3차: 동+괄호제거
+                queries.push(prefix + aptNmClean);                   // 4차: 괄호제거만
+              }
               return new Promise(function(res) {
-                searchApt(apt, q1, q2, function() {
+                searchApt(apt, queries, 0, function() {
                   done++;
                   showTradeStatus('좌표 조회 중... (' + done + '/' + uniqueKeys.length + '개)', false);
                   res();
