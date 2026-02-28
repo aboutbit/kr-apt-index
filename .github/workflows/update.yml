@@ -31,7 +31,6 @@ jobs:
           REB_API_KEY: ${{ secrets.REB_API_KEY }}
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
-          SKIP_FETCH: '1'
         run: node index.js
 
       - name: Commit and push
