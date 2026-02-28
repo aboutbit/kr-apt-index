@@ -26,6 +26,12 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Update coords cache
+        env:
+          MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+        run: node lib/update-coords.js
+
       - name: Generate dashboard
         env:
           REB_API_KEY: ${{ secrets.REB_API_KEY }}
@@ -38,7 +44,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add index.html
+          git add index.html data/coords-cache.json
           git diff --staged --quiet && echo "변경 없음, 커밋 건너뜀" || (
             git commit -m "Update: $(date -u '+%Y-%m-%d')" &&
             git push
