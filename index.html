@@ -1059,7 +1059,7 @@
     var _markerLayer = null;
 
     // 아파트별 지오코딩 (Kakao 장소 검색 → lat/lng)
-    function geocodeApts(items) {
+    function geocodeApts(items, sigunguNm) {
       if (typeof kakao === 'undefined' || !kakao.maps || !kakao.maps.services) {
         return Promise.resolve(items);
       }
@@ -1073,14 +1073,16 @@
       var ps = new kakao.maps.services.Places();
       return Promise.all(uniqueKeys.map(function(key) {
         var apt = aptKeys[key];
+        // 시/군/구명 포함해 검색 정확도 향상, 카테고리 필터 제거(AG2는 과도하게 좁음)
+        var query = (sigunguNm ? sigunguNm + ' ' : '') + apt.aptNm + ' ' + apt.umdNm;
         return new Promise(function(resolve) {
-          ps.keywordSearch(apt.aptNm + ' ' + apt.umdNm, function(results, status) {
+          ps.keywordSearch(query, function(results, status) {
             if (status === kakao.maps.services.Status.OK && results.length > 0) {
               apt.lat = parseFloat(results[0].y);
               apt.lng = parseFloat(results[0].x);
             }
             resolve();
-          }, { size: 1, category_group_code: 'AG2' });
+          }, { size: 1 });
         });
       })).then(function() {
         return items.map(function(it) {
@@ -1287,6 +1289,8 @@
       }
       var lawdCd = document.getElementById('sigungu-select').value;
       if (!lawdCd) return;
+      var sigunguSel = document.getElementById('sigungu-select');
+      var sigunguNm  = sigunguSel.options[sigunguSel.selectedIndex].text;
       var btn = document.getElementById('trade-search-btn');
       btn.disabled = true;
       document.getElementById('map-wrap').classList.remove('visible');
@@ -1357,7 +1361,7 @@
         showTradeStatus('좌표 조회 중... (' + Object.keys(mapItems.reduce(function(acc, it) {
           acc[(it.aptNm || '') + '||' + (it.umdNm || '')] = 1; return acc;
         }, {})).length + '개 아파트)', false);
-        var geocodedItems = await geocodeApts(mapItems);
+        var geocodedItems = await geocodeApts(mapItems, sigunguNm);
         renderTradeMap(geocodedItems);
 
         showTradeStatus(allItems.length + '건 조회됨 (최근 3개월, 해제 거래 포함)', false);
