@@ -412,7 +412,7 @@
     <header>
       <div class="header-left">
         <h1>한국 아파트 가격 지수 대시보드</h1>
-        <p>한국부동산원 공식 지수 — 기준: 2017.11 = 100 (아파트) &nbsp;·&nbsp; 생성일: 2026년 2월 28일</p>
+        <p>한국부동산원 공식 지수 — 기준: 2017.11 = 100 (아파트) &nbsp;·&nbsp; 생성일: 2026년 3월 1일</p>
       </div>
       <span class="header-badge">R-ONE API</span>
     </header>
@@ -1511,7 +1511,7 @@
           var data = await res.json();
           // 상세 API 접근 오류 감지 → 기본 API로 폴백
           var resultCode = data && data.response && data.response.header && data.response.header.resultCode;
-          if (useDetailed && resultCode && resultCode !== '00') {
+          if (useDetailed && resultCode && !String(resultCode).startsWith('0')) {
             useDetailed = false;
             base = basicBase;
             res = await fetch(base + params);
