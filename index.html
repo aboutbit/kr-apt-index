@@ -344,6 +344,18 @@
     /* ── 지도 ─────────────────────────────────────────────────── */
     .map-wrap { display: none; margin-bottom: 14px; position: relative; }
     .map-wrap.visible { display: block; }
+    #map-popup {
+      display: none;
+      position: absolute; top: 50px; left: 8px;
+      z-index: 2000;
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.28);
+      min-width: 240px; max-width: 320px;
+      padding: 10px 14px 10px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.5; font-size: 14px;
+    }
+    #map-popup.visible { display: block; }
     #trade-map {
       height: 440px;
       border-radius: 10px;
@@ -559,6 +571,7 @@
       <div class="map-wrap" id="map-wrap">
         <div id="pyeong-filter" style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 6px;"></div>
         <div id="trade-map"></div>
+        <div id="map-popup"></div>
         <div class="map-legend">
           <div class="map-legend-row"><span class="map-dot" style="background:#dc2626"></span>10억 이상</div>
           <div class="map-legend-row"><span class="map-dot" style="background:#ea580c"></span>5~10억</div>
@@ -1063,7 +1076,6 @@
     var _overlays      = [];
     var _overlayData   = [];
     var _activeFilter    = 'all';
-    var _currentIW       = null;
     var _highlightedUid  = null;
 
     // 아파트별 지오코딩 (좌표 캐시 → MOLIT API 좌표 → Kakao JS SDK 순으로 조회)
@@ -1182,7 +1194,7 @@
       _overlays = [];
       _overlayData = [];
       _activeFilter = 'all';
-      if (_currentIW) { _currentIW.setMap(null); _currentIW = null; window._mapCurrentIW = null; }
+      closeMapPopup();
       _highlightedUid = null;
 
       // 아파트별로 그룹화 (동일 아파트 거래 통합)
@@ -1279,47 +1291,18 @@
           ? '<div style="font-size:0.75em;color:#94a3b8;margin-top:3px;text-align:right">외 ' + (apt.trades.length - 5) + '건</div>'
           : '';
 
-        var closeBtn = '<button onclick="if(window._mapCurrentIW){window._mapCurrentIW.setMap(null);window._mapCurrentIW=null;}" '
-          + 'style="position:absolute;top:4px;right:6px;background:none;border:none;font-size:18px;'
-          + 'cursor:pointer;color:#94a3b8;line-height:1;padding:2px 6px">×</button>';
-        var popupContent = '<div style="position:relative;min-width:240px;background:#fff;border-radius:10px;'
-          + 'box-shadow:0 4px 20px rgba(0,0,0,0.28);font-family:-apple-system,sans-serif;'
-          + 'line-height:1.5;padding:10px 14px 10px;margin-bottom:10px">'
-          + closeBtn
-          + '<div style="font-weight:700;font-size:0.95em;margin-bottom:2px">' + apt.aptNm + '</div>'
-          + '<div style="font-size:0.8em;color:#64748b;margin-bottom:8px">' + apt.umdNm + '</div>'
-          + '<table style="width:100%;font-size:0.82em;border-collapse:collapse">'
-          + '<thead><tr style="color:#94a3b8;border-bottom:1px solid #e2e8f0">'
-          + '<th style="padding:3px 6px;font-weight:600">날짜</th>'
-          + '<th style="padding:3px 6px;font-weight:600">면적</th>'
-          + '<th style="padding:3px 6px;font-weight:600">층</th>'
-          + '<th style="padding:3px 6px;font-weight:600">금액</th>'
-          + '</tr></thead>'
-          + '<tbody>' + rows + '</tbody>'
-          + '</table>' + extra + '</div>';
-
-        var iw = new kakao.maps.CustomOverlay({
-          position: pos,
-          content: popupContent,
-          yAnchor: 1.15,
-          zIndex: 100,
-        });
-
-        // 클릭 시 팝업 표시 (다른 마커 위에 오도록 zIndex 100)
-        (function(infoWin, elemId) {
+        // 클릭 시 DOM 팝업 패널 표시 (Kakao Maps 외부 div → 항상 마커 위에)
+        (function(aptData, elemId) {
           setTimeout(function() {
             var el = document.getElementById(elemId);
             if (el) {
               el.addEventListener('click', function(e) {
                 e.stopPropagation();
-                if (_currentIW) _currentIW.setMap(null);
-                _currentIW = infoWin;
-                window._mapCurrentIW = infoWin;
-                infoWin.setMap(_kakaoMap);
+                showMapPopup(aptData);
               });
             }
           }, 100);
-        })(iw, uid);
+        })(apt, uid);
 
         bounds.extend(pos);
       });
@@ -1649,6 +1632,49 @@
       });
     }
 
+    function showMapPopup(apt) {
+      var popup = document.getElementById('map-popup');
+      var trades = apt.trades || [];
+      var rows = trades.slice(0, 5).map(function(it) {
+        var raw = parseInt((it.dealAmount || '0').replace(/,/g,''), 10);
+        var price = raw >= 10000
+          ? (raw / 10000).toFixed(1).replace(/.0$/, '') + '억'
+          : raw.toLocaleString() + '만';
+        var dt = it.dealYear + '.' + String(it.dealMonth).padStart(2,'0') + '.' + String(it.dealDay).padStart(2,'0');
+        var ar = parseFloat(it.excluUseAr || 0).toFixed(0);
+        return '<tr>'
+          + '<td style="padding:3px 6px">' + dt + '</td>'
+          + '<td style="padding:3px 6px">' + ar + '㎡</td>'
+          + '<td style="padding:3px 6px">' + (it.floor || '—') + '층</td>'
+          + '<td style="padding:3px 6px;font-weight:700;color:#2563eb">' + price + '</td>'
+          + '</tr>';
+      }).join('');
+      var extra = trades.length > 5
+        ? '<div style="font-size:0.75em;color:#94a3b8;margin-top:3px;text-align:right">외 ' + (trades.length - 5) + '건</div>'
+        : '';
+      popup.innerHTML =
+        '<div style="position:relative">'
+        + '<button onclick="closeMapPopup()" style="position:absolute;top:-4px;right:-4px;background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;line-height:1;padding:2px 6px">×</button>'
+        + '<div style="font-weight:700;font-size:0.95em;margin-bottom:2px;padding-right:20px">' + apt.aptNm + '</div>'
+        + '<div style="font-size:0.8em;color:#64748b;margin-bottom:8px">' + apt.umdNm + '</div>'
+        + '<table style="width:100%;font-size:0.82em;border-collapse:collapse">'
+        + '<thead><tr style="color:#94a3b8;border-bottom:1px solid #e2e8f0">'
+        + '<th style="padding:3px 6px;font-weight:600">날짜</th>'
+        + '<th style="padding:3px 6px;font-weight:600">면적</th>'
+        + '<th style="padding:3px 6px;font-weight:600">층</th>'
+        + '<th style="padding:3px 6px;font-weight:600">금액</th>'
+        + '</tr></thead>'
+        + '<tbody>' + rows + '</tbody>'
+        + '</table>' + extra
+        + '</div>';
+      popup.classList.add('visible');
+    }
+
+    function closeMapPopup() {
+      var popup = document.getElementById('map-popup');
+      if (popup) popup.classList.remove('visible');
+    }
+
     function highlightMapMarker(aptNm, umdNm) {
       // 이전 강조 해제
       if (_highlightedUid) {
@@ -1685,8 +1711,7 @@
           el.style.boxShadow = '0 0 0 4px rgba(249,115,22,0.25), 0 4px 12px rgba(0,0,0,0.3)';
           el.style.transform = 'scale(1.08)';
           el.style.zIndex = '50';
-          // 팝업도 자동으로 열기
-          el.click();
+          showMapPopup(match);
         }
       }, 300); // panTo 완료 후
     }
