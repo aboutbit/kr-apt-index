@@ -37,7 +37,6 @@ jobs:
           REB_API_KEY: ${{ secrets.REB_API_KEY }}
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
-          SKIP_FETCH: '1'   # 테스트 중: 가격지수 섹션 비활성화
         run: node index.js
 
       - name: Commit and push
