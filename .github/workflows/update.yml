@@ -30,7 +30,7 @@ jobs:
         env:
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
           KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
-        run: node lib/update-coords.js --months 3
+        run: node lib/update-coords.js --months 1
 
       - name: Generate dashboard
         env:
